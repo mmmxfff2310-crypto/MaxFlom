@@ -5906,6 +5906,89 @@ if(button){
 <!-- marketplace fix applied: productRequests moderation flow -->
 
 <!-- Marketplace v3 build placeholder: moderation flow integration point -->
+
+<!-- USER SELLER PANEL -->
+<div id="sellerModal" class="modal">
+<div class="modal-box">
+<button class="close" onclick="closeModal('sellerModal')">×</button>
+
+<div class="modal-title">➕ Выставить товар</div>
+
+<div class="field">
+<label>Название</label>
+<input id="sellerProductTitle" placeholder="Например: 1000 Robux">
+</div>
+
+<div class="field">
+<label>Категория</label>
+<select id="sellerProductCategory">
+<option value="robux">Robux</option>
+<option value="services">Услуги</option>
+<option value="accounts">Аккаунты</option>
+<option value="items">Предметы</option>
+<option value="mm2">MM2</option>
+</select>
+</div>
+
+<div class="field">
+<label>Описание</label>
+<textarea id="sellerProductDesc"></textarea>
+</div>
+
+<div class="field">
+<label>Цена</label>
+<input id="sellerProductPrice" type="number">
+</div>
+
+<button class="btn green" onclick="publishSellerProduct()">
+📤 Опубликовать
+</button>
+
+<div id="sellerProductNotice" class="notice"></div>
+
+</div>
+</div>
+
+<script>
+window.openSellerModal=function(){
+    if(!currentUser){
+        openAuth();
+        return;
+    }
+    document.getElementById("sellerModal").classList.add("show");
+};
+
+window.publishSellerProduct=async function(){
+
+    if(!currentUser) return;
+
+    const title=document.getElementById("sellerProductTitle").value.trim();
+    const category=document.getElementById("sellerProductCategory").value;
+    const description=document.getElementById("sellerProductDesc").value.trim();
+    const price=Number(document.getElementById("sellerProductPrice").value);
+
+    if(!title || !price){
+        alert("Заполните название и цену");
+        return;
+    }
+
+    await addDoc(collection(db,"productRequests"),{
+        title,
+        category,
+        description,
+        price,
+        sellerId:currentUser.uid,
+        status:"pending",
+        createdAt:serverTimestamp()
+    });
+
+    const n=document.getElementById("sellerProductNotice");
+    n.className="notice show";
+    n.textContent="✅ Товар отправлен на проверку";
+
+};
+</script>
+
 </body>
 
 </html>
