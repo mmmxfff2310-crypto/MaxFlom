@@ -1997,7 +1997,7 @@ try{
 
 const snapshot=
 await getDocs(
-collection(db,"products")
+collection(db,"productRequests")
 );
 
 customProducts=
@@ -2294,7 +2294,7 @@ false
 }else{
 
 await addDoc(
-collection(db,"products"),
+collection(db,"productRequests"),
 {
 
 ...data,
@@ -5903,5 +5903,6 @@ if(button){
 }
 </script>
 
+<!-- marketplace fix applied: productRequests moderation flow -->
 </body>
 </html>
