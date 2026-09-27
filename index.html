@@ -5810,5 +5810,98 @@ loadCustomProducts();
 
 </script>
 
+
+<!-- MARKETPLACE PROFILE / SELLER ADDON -->
+<div id="sellerModal" class="modal">
+<div class="modal-box">
+<button class="close" onclick="closeModal('sellerModal')">×</button>
+<div class="modal-title">➕ Выставить товар</div>
+
+<div class="field"><label>Название</label><input id="sellerTitle"></div>
+<div class="field"><label>Описание</label><textarea id="sellerDesc"></textarea></div>
+<div class="field"><label>Цена</label><input id="sellerPrice" type="number"></div>
+<div class="field"><label>Фото</label><input id="sellerImage" type="file" accept="image/*"></div>
+
+<button class="btn green" onclick="sendSellerProduct()">Отправить на проверку</button>
+<div id="sellerNotice" class="notice"></div>
+</div>
+</div>
+
+<script>
+window.openSellerModal=function(){
+ if(!currentUser){openAuth();return;}
+ document.getElementById('sellerModal').classList.add('show');
+}
+
+window.sendSellerProduct=async function(){
+ if(!currentUser)return;
+
+ const title=document.getElementById('sellerTitle').value.trim();
+ const desc=document.getElementById('sellerDesc').value.trim();
+ const price=Number(document.getElementById('sellerPrice').value);
+
+ if(!title||!price){
+   alert('Заполните название и цену');
+   return;
+ }
+
+ const button = document.querySelector("#sellerModal button.btn.green");
+
+if(button && button.disabled){
+   return;
+}
+
+if(button){
+   button.disabled = true;
+   button.textContent = "⏳ Отправка...";
+}
+
+try{
+
+const existing = await getDocs(
+ query(
+   collection(db,"productRequests"),
+   where("sellerId","==",currentUser.uid),
+   where("title","==",title),
+   where("status","==","pending"),
+   limit(1)
+ )
+);
+
+if(!existing.empty){
+   throw new Error("Такой товар уже отправлен на проверку.");
+}
+
+await addDoc(collection(db,"productRequests"),{
+   title,
+   description:desc,
+   price,
+   sellerId:currentUser.uid,
+   status:"pending",
+   createdAt:serverTimestamp()
+});
+
+document.getElementById("sellerTitle").value="";
+document.getElementById("sellerDesc").value="";
+document.getElementById("sellerPrice").value="";
+
+document.getElementById('sellerNotice').className="notice show";
+document.getElementById('sellerNotice').textContent="Товар отправлен на проверку администрации";
+
+}catch(e){
+
+alert(e.message);
+
+}finally{
+
+if(button){
+ button.disabled=false;
+ button.textContent="Отправить на проверку";
+}
+
+}
+}
+</script>
+
 </body>
 </html>
