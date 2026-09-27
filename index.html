@@ -1336,6 +1336,27 @@ class="notice">
 </div>
 
 
+
+<!-- ================= ЧАТ СДЕЛКИ ================= -->
+<div id="dealChatModal" class="modal">
+<div class="modal-box">
+<button class="close" onclick="closeModal('dealChatModal')">×</button>
+<div class="modal-title">🛒 Чат сделки</div>
+<div id="dealChatInfo" class="chat-box">Загрузка...</div>
+<form onsubmit="sendDealMessage(event)">
+<div class="field">
+<label>Сообщение</label>
+<textarea id="dealChatText" placeholder="Напишите продавцу..."></textarea>
+</div>
+<div class="field">
+<label>Фото</label>
+<input id="dealChatImage" type="file" accept="image/*">
+</div>
+<button class="btn green" type="submit">📨 Отправить</button>
+</form>
+</div>
+</div>
+
 <!-- ================= ПОДДЕРЖКА ================= -->
 
 <div id="supportModal"
@@ -1509,6 +1530,8 @@ let editingProductId=null;
 let notificationUnsubscribe=null;
 
 let supportUnsubscribe=null;
+let dealChatUnsubscribe=null;
+let currentDealChatId=null;
 
 
 /* ================= ТОВАРЫ ================= */
@@ -2938,7 +2961,16 @@ nickname:
 nickname,
 
 createdAt:
-serverTimestamp()
+serverTimestamp(),
+
+buyerId:
+currentUser.uid,
+
+sellerId:
+"admin",
+
+chatId:
+orderRef.id
 
 }
 
@@ -3980,6 +4012,11 @@ class="btn danger cancel-order">
 ↩️ Отменить и вернуть
 </button>
 
+<button
+class="btn secondary deal-open">
+💬 Чат сделки
+</button>
+
 `
 
 :""
@@ -4012,6 +4049,8 @@ card
 order.id,
 order
 );
+
+card.querySelector(".deal-open").onclick=()=>openDealChat(order.id);
 
 }
 
@@ -5260,6 +5299,57 @@ error
 
 }
 
+
+
+/* ================= ЧАТ СДЕЛКИ ================= */
+
+window.openDealChat=async function(orderId){
+ if(!currentUser){openAuth();return;}
+ currentDealChatId=orderId;
+ document.getElementById("dealChatModal").classList.add("show");
+ const box=document.getElementById("dealChatInfo");
+ const q=query(collection(db,"chats",orderId,"messages"),orderBy("createdAt","asc"));
+ if(dealChatUnsubscribe) dealChatUnsubscribe();
+ dealChatUnsubscribe=onSnapshot(q,(snap)=>{
+   box.innerHTML="";
+   if(snap.empty){box.innerHTML='<div class="empty">Сообщений пока нет.</div>';return;}
+   snap.forEach(d=>{
+    const m=d.data();
+    box.innerHTML+=`<div class="chat-message ${m.senderId===currentUser.uid?'user-message':'admin-message'}">
+    <b>${m.senderId===currentUser.uid?'Вы':'Продавец'}</b>
+    <div>${escapeHtml(m.text||"")}</div>
+    ${m.imageUrl?`<img src="${m.imageUrl}" style="max-width:100%;border-radius:10px">`:""}
+    </div>`;
+   });
+   box.scrollTop=box.scrollHeight;
+ });
+};
+
+window.sendDealMessage=async function(e){
+ e.preventDefault();
+ if(!currentDealChatId||!currentUser)return;
+ const text=document.getElementById("dealChatText").value.trim();
+ const file=document.getElementById("dealChatImage").files[0];
+ let imageUrl="";
+ if(file){
+   const r=ref(storage,`dealChats/${currentDealChatId}/${Date.now()}_${file.name}`);
+   await uploadBytes(r,file);
+   imageUrl=await getDownloadURL(r);
+ }
+ if(!text&&!imageUrl)return;
+ await addDoc(collection(db,"chats",currentDealChatId,"messages"),{
+   text,
+   imageUrl,
+   senderId:currentUser.uid,
+   createdAt:serverTimestamp()
+ });
+ await setDoc(doc(db,"chats",currentDealChatId),{
+   orderId:currentDealChatId,
+   updatedAt:serverTimestamp()
+ },{merge:true});
+ document.getElementById("dealChatText").value="";
+ document.getElementById("dealChatImage").value="";
+};
 
 /* ================= AUTH ================= */
 
